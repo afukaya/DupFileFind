@@ -1,0 +1,2 @@
+# DupFileFind
+Duplicate File Finder
