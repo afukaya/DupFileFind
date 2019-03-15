@@ -1,1 +1,10 @@
+# TODO
 
+1 - Determine how the search path will be given to the script
+2 - Will the script check the entire tree or just the given folder?
+3 - Which are the methods to be used in order to determine if a file is 
+    duplicated or not?
+   
+    a - Get MD5 key for the file.
+    b - Check for the file size.
+4 - How to store the files in order to show them to the user?
