@@ -1,22 +1,45 @@
-# Check duplicate files
-# gets a directory from user and checks for duplicate files
-# in the current directory tree.
-#
-# Need to:
-# 1 - Determine how the search path will be given to the script
-# 2 - Will the script check the entire tree or just the given folder?
-# 3 - Which are the methods to be used in order to determine if a file is 
-#     duplicated or not?
-#    
-#     a - Get MD5 key for the file.
-#     b - Check for the file size.
-# 4 - How to store the files in order to show them to the user?
+#! /usr/bin/python3
+# -*- coding: utf-8 -*-
 
-import os, hashlib
+"""
+NAME  : DupFileFind.py
+AUTHOR: Alexandre Fukaya
+DATE  : 25/01/2019
+
+DESCRIPTION:
+    Check duplicate files gets a directory from user and checks for duplicate 
+    files in the current directory tree.
+    
+DEPENDENCIES:
+
+TODO:
+    1 - Determine how the search path will be given to the script
+    2 - Will the script check the entire tree or just the given folder?
+    3 - Which are the methods to be used in order to determine if a file is 
+        duplicated or not? 
+            a - Get MD5 key for the file.
+            b - Check for the file size.
+    4 - How to store the files in order to show them to the user?
+
+CHANGELOG:
+
+"""
+
+import os 
+import hashlib
+from pathlib import Path
 
 # Global Variables
-allFiles   = dict()
-searchRoot = "."
+# allFiles: This dictionary stores all files found at searchRoot as bellow.
+#           | Variable | Type   | Description |
+#           |:---------|:-------|:------------|
+#           | fileHash | String | Store the MD5 hash for all files found. This is the dictionary key. |
+#           | fileDir  | String | The path for the file file. |
+#           | file     | String | File name. |
+#           | fileSize | String | The size in bytes for the file.
+
+allFiles   = dict()     
+searchRoot = Path(".")
 
 #------------------------------------------------------------------------------
 #
@@ -26,7 +49,7 @@ searchRoot = "."
 #
 #-------------------------------------------------------------------------------
 def getFileHash(root,file):
-    filePath = root + '\\' + file
+    filePath = os.path.join(root,file)
 
     with open(filePath, mode='rb') as f:
         d = hashlib.md5()
@@ -36,6 +59,33 @@ def getFileHash(root,file):
                 break
             d.update(buf)
     return d.hexdigest()
+
+#-------------------------------------------------------------------------------
+#
+# getFileStats
+#
+# Calculate statistics for files found.
+#  - Number of files found.
+#  - Number of duplicate files.
+#  - Total disk size for all files found.
+#  - Total disk size for duplicate files found.
+#
+#-------------------------------------------------------------------------------
+def getFileStats(allfiles):
+    allfiles_size = 0
+    duplicatedfiles_found = 0
+
+    for fhash in allfiles:
+        files  = allfiles[fhash]
+
+        if len(files) > 1 :
+            duplicatedfiles_found += len(files)
+
+        for files in allfiles[fhash]:
+            allfiles_size += int(files[2])
+    
+    print("All files size = {0} bytes".format(allfiles_size))
+    return
 
 #-------------------------------------------------------------------------------
 #
@@ -57,8 +107,9 @@ def processDirectory(root):
             try:
                 for file in files:
                     fileDir  = root
+                    filePath = os.path.join(root,file)
                     fileHash = getFileHash(root,file)
-                    fileSize = os.path.getsize(root + '\\' + file)
+                    fileSize = os.path.getsize(filePath)
                     fileInfo = [fileDir,file,fileSize]
                     if not fileHash in allFiles:
                         allFiles[fileHash] = []
@@ -67,6 +118,8 @@ def processDirectory(root):
                         allFiles[fileHash].append(fileInfo)
             except IOError as e:
                 print(e.strerror,':',file)
+        
+    getFileStats(allFiles)
 
 #-------------------------------------------------------------------------------
 #
@@ -76,7 +129,6 @@ def processDirectory(root):
 #-------------------------------------------------------------------------------
 def findDuplicatedHashes():
     global allFiles
-    global duplicatedHashes
 
     print('Duplicated Files Found')
     for fileInfo in allFiles:
@@ -118,10 +170,14 @@ def changeDir():
             print('Skipping')
             break
         else :
-            print('New root: ',searchRoot)
-            allFiles = {}
-            processDirectory(searchRoot)
-            break
+            p = Path(searchRoot)
+            if p.exists():
+                print('New root: ',searchRoot)
+                allFiles = {}
+                processDirectory(searchRoot)
+                break
+            else:
+                print('Directory not found.')
 
 #-------------------------------------------------------------------------------
 #
@@ -149,7 +205,7 @@ def dumpDuplicatedFiles():
     global allFiles
     global searchRoot
     
-    outFileName  = searchRoot + '\\dupfiles.csv'
+    outFileName  = os.path.join(searchRoot,'dupfiles.csv')
     reportHeader = 'FileHash,FileName,Dir'
 
     print('Dumping Duplicated Files')
@@ -161,7 +217,7 @@ def dumpDuplicatedFiles():
         for fileInfo in allFiles:
             if len(allFiles[fileInfo]) > 1 :
                 for file in allFiles[fileInfo] :
-                    o.write(fileInfo + ',' + file[0] + '\\' + file[1] + '\n')
+                    o.write(fileInfo + ',' + '\"' + file[0] + '\"' + ',' + "\"" + file[1] + "\"" + '\n')
     except IOError as e:
         print('Error: ',e.message,' at ',e.filename)
 
@@ -188,6 +244,8 @@ def main():
         print('#                 Duplicate File Manager                  #')
         print('#                                                         #')
         print('#---------------------------------------------------------#')
+        print()
+        print('Current Dir: {0}'.format(searchRoot))
         print()
         print('Main Menu:')
         print('1 - Change current dir')
@@ -219,4 +277,5 @@ def main():
         else :
             print('Invalid Option')
     
-main()
+if __name__ == '__main__':
+    main()

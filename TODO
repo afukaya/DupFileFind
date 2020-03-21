@@ -6,3 +6,4 @@
     a - Get MD5 key for the file.
     b - Check for the file size.
 4 - How to store the files in order to show them to the user?
+5 - Multithread hash calculation function.
