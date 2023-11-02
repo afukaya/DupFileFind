@@ -1,8 +1,6 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
-
-"""
-NAME  : DupFileFind.py
+""" DupFileFind.py
 AUTHOR: Alexandre Fukaya
 DATE  : 25/01/2019
 
@@ -54,19 +52,28 @@ from datetime import datetime
 allFiles = dict()
 searchRoot = Path(".")
 
-# ------------------------------------------------------------------------------
-#
-# getFileMD5Key
-#
-# Calculates MD5 Key for a file.
-#
-# -------------------------------------------------------------------------------
+def get_file_hash(root, file):
 
+    """get_file_hash 
+    
+    Calculates MD5 Key for a file.
 
-def getFileHash(root, file):
-    filePath = os.path.join(root, file)
+    Parameters
+    ----------
+    root : str
+        The path where the file is stored
+    file : str
+        Name of the file to be processed.
 
-    with open(filePath, mode='rb') as f:
+    Returns
+    -------
+    str
+        The MD5 hash for the given file.
+    """
+
+    file_path = os.path.join(root, file)
+
+    with open(file_path, mode='rb') as f:
         d = hashlib.md5()
         while True:
             buf = f.read(65536)
@@ -75,52 +82,56 @@ def getFileHash(root, file):
             d.update(buf)
     return d.hexdigest()
 
-# -------------------------------------------------------------------------------
-#
-# getFileStats
-#
-# Calculate statistics for files found.
-#  - Number of files found.
-#  - Number of duplicate files.
-#  - Total disk size for all files found.
-#  - Total disk size for duplicate files found.
-#
-# -------------------------------------------------------------------------------
+def get_file_stats(allfiles):
 
+    """get_file_stats 
+    
+    Calculate statistics for files found like:
+    - Number of files found.
+    - Number of duplicate files.
+    - Total disk size for all files found.
+    - Total disk size for duplicate files found.
 
-def getFileStats(allfiles):
-    allfiles_size = 0
-    duplicatedfiles_found = 0
+    Parameters
+    ----------
+    allfiles : List
+        A List containing allpre processed files.
+    """
+
+    allfilessize = 0
+    duplicatefound = 0
 
     for fhash in allfiles:
         files = allfiles[fhash]
 
         if len(files) > 1:
-            duplicatedfiles_found += len(files)
+            duplicatefound += len(files)
 
         for files in allfiles[fhash]:
-            allfiles_size += int(files[2])
+            allfilessize += int(files[2])
 
     print("{0} files processed".format(len(allFiles)))
-    print("All files size = {0} bytes".format(allfiles_size))
-    return
+    print("With {0} Duplicated files found.".format(duplicatefound))
+    print("All files size = {0} bytes".format(allfilessize))
+ 
+def process_directory(root):
+    """process_directory
 
-# -------------------------------------------------------------------------------
-#
-# processDirectory
-#
-#
-# -------------------------------------------------------------------------------
+    Walks through a given directory tree and finds all duplicated files 
+    in that path by calculating and compairing their MD5 hash.
 
-
-def processDirectory(root):
+    Parameters
+    ----------
+    root : string
+        The name of the serach starting directory.
+    """
 
     global allFiles
 
-    fileInfo = list()
+    fileinfo = list()
     start_time = datetime.now()
 
-    for root, subDirs, files in os.walk(root, topdown=True):
+    for root, subdirs, files in os.walk(root, topdown=True):
 
         print('Processing files at ', root)
 
@@ -129,67 +140,55 @@ def processDirectory(root):
         else:
             try:
                 for file in files:
-                    fileDir = root
-                    filePath = os.path.join(root, file)
-                    fileHash = getFileHash(root, file)
-                    fileSize = os.path.getsize(filePath)
-                    fileInfo = [fileDir, file, fileSize]
-                    if not fileHash in allFiles:
-                        allFiles[fileHash] = []
-                        allFiles[fileHash].append(fileInfo)
+                    filedir = root
+                    filepath = os.path.join(root, file)
+                    filehash = get_file_hash(root, file)
+                    filesize = os.path.getsize(filepath)
+                    fileinfo = [filedir, file, filesize]
+                    if filehash not in allFiles:
+                        allFiles[filehash] = []
+                        allFiles[filehash].append(fileinfo)
                     else:
-                        allFiles[fileHash].append(fileInfo)
+                        allFiles[filehash].append(fileinfo)
             except IOError as e:
                 print(e.strerror, ':', file)
 
-    getFileStats(allFiles)
+    get_file_stats(allFiles)
     end_time = datetime.now()
     total_time = end_time - start_time
     print("Elapsed Time: ", total_time)
 
-# -------------------------------------------------------------------------------
-#
-# findDuplicatedFileHasehes
-#
-#
-# -------------------------------------------------------------------------------
+def find_duplicated_hashes():
+    """find_duplicated_hashes
 
-
-def findDuplicatedHashes():
+    List on console information about all duplicated files found .
+    """    
     global allFiles
 
     print('Duplicated Files Found')
-    for fileInfo in allFiles:
-        if len(allFiles[fileInfo]) > 1:
-            print(fileInfo)
-            for file in allFiles[fileInfo]:
+    for fileinfo in allFiles:
+        if len(allFiles[fileinfo]) > 1:
+            print(fileinfo)
+            for file in allFiles[fileinfo]:
                 print(file)
             print()
     input('Press Enter to continue')
 
-# -------------------------------------------------------------------------------
-#
-# printAllFiles
-#
-#
-# -------------------------------------------------------------------------------
+def print_all_files():
+    """print_all_files
 
-
-def printAllFiles():
+    List on console the information about all files found.
+    """    
     print('All Files Found')
-    for fileHash in allFiles:
-        print(fileHash, allFiles[fileHash])
+    for filehash in allFiles:
+        print(filehash, allFiles[filehash])
     input('Press Enter to continue')
 
-# -------------------------------------------------------------------------------
-#
-# changeDir()
-#
-#
-# -------------------------------------------------------------------------------
+def change_dir():
+    """change_dir
 
-
-def changeDir():
+    Allows user to change a different directory for search.
+    """    
     global searchRoot
     global allFiles
 
@@ -206,74 +205,62 @@ def changeDir():
             if p.exists():
                 print('New root: ', searchRoot)
                 allFiles = {}
-                processDirectory(searchRoot)
+                process_directory(searchRoot)
                 break
             else:
                 print('Directory not found.')
 
-# -------------------------------------------------------------------------------
-#
-# refreshFiles()
-#
-#
-# -------------------------------------------------------------------------------
+def refresh_files():
+    """refresh_files
 
-
-def refreshFiles():
+    Update the file information for the current directory.
+    """    
     global allFiles
     global searchRoot
 
     allFiles = dict()
 
     print('Refreshing file list for ', searchRoot)
-    processDirectory(searchRoot)
+    process_directory(searchRoot)
     input('Press Enter to continue')
 
-# -------------------------------------------------------------------------------
-#
-# dumpDuplicatedFiles
-#
-#
-# -------------------------------------------------------------------------------
+def dump_duplicated_files():
+    """dump_duplicated_files
 
-
-def dumpDuplicatedFiles():
+    Create a CSV file with duplicate files information.
+    """    
     global allFiles
     global searchRoot
 
-    outFileName = os.path.join(searchRoot, 'dupfiles.csv')
-    reportHeader = 'FileHash,FileName,Dir'
+    outfilename = os.path.join(searchRoot, 'dupfiles.csv')
+    reportheader = 'FileHash,FileName,Dir'
 
     print('Dumping Duplicated Files')
 
     try:
-        o = open(outFileName, mode='w')
-        o.write(reportHeader + '\n')
+        o = open(outfilename, mode='w')
+        o.write(reportheader + '\n')
 
-        for fileInfo in allFiles:
-            if len(allFiles[fileInfo]) > 1:
-                for file in allFiles[fileInfo]:
-                    o.write(fileInfo + ',' + '\"' +
+        for fileinfo in allFiles:
+            if len(allFiles[fileinfo]) > 1:
+                for file in allFiles[fileinfo]:
+                    o.write(fileinfo + ',' + '\"' +
                             file[0] + '\"' + ',' + "\"" + file[1] + "\"" + '\n')
     except IOError as e:
         print('Error: ', e.message, ' at ', e.filename)
 
     input('Press Enter to continue')
 
-# -------------------------------------------------------------------------------
-#
-# main
-#
-#
-# -------------------------------------------------------------------------------
-
-
 def main():
+    """main The main function.
+
+     Draws the user interface and execute its functions.
+    """    
     global allFiles
 
     option = ""
 
-    processDirectory(searchRoot)
+    process_directory(searchRoot)
 
     while option != 'x':
 
@@ -296,19 +283,19 @@ def main():
         option = input('Choose one option: ')
 
         if option == '1':
-            changeDir()
+            change_dir()
 
         elif option == '2':
-            printAllFiles()
+            print_all_files()
 
         elif option == '3':
-            refreshFiles()
+            refresh_files()
 
         elif option == '4':
-            findDuplicatedHashes()
+            find_duplicated_hashes()
 
         elif option == '5':
-            dumpDuplicatedFiles()
+            dump_duplicated_files()
 
         elif option == 'x':
             print('Quitting')
