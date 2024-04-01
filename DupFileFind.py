@@ -1,5 +1,6 @@
 #! /usr/bin/python3
 # -*- coding: utf-8 -*-
+
 """ DupFileFind.py
 AUTHOR: Alexandre Fukaya
 DATE  : 25/01/2019
